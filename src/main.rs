@@ -64,7 +64,7 @@ async fn main() {
     println!("  Err: {}", total_req - ok_req);
     println!("  Total: {}", total_req);
     println!("  Elapsed time: {:.2} s", elapsed);
-    println!("  Connections: {}", args.messages);
+    println!("  Connections: {}", args.connections);
     println!("  Msg len: {}", human_bytes(args.message.len() as f64));
     println!("  Requests per second: {:.2} rps", rate);
     println!(
