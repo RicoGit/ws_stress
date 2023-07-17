@@ -18,4 +18,7 @@ pub struct Args {
     /// Message to send
     #[arg(default_value = "hello world!")]
     pub message: String,
+
+    #[arg(short, long, default_value = "false")]
+    pub log_errors: bool,
 }

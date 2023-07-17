@@ -33,11 +33,27 @@ async fn main() {
 
             // Async, quite fast, with feedback (send_all is faster but we can't count
             // messages)
+            let mut map = hashbrown::HashMap::new();
             for _ in 0..args.messages {
-                if client_tungstenite.send(Text(msg.clone())).await.is_ok() {
-                    ok_counter.fetch_add(1, Ordering::Relaxed);
+                match client_tungstenite.send(Text(msg.clone())).await {
+                    Ok(_) => {
+                        ok_counter.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Err(err) => {
+                        if args.log_errors {
+                            let err = format!("{:?}", err);
+                            if map.contains_key(&err) {
+                                let count = map.get_mut(&err).unwrap();
+                                *count += 1;
+                            } else {
+                                map.insert(err, 1);
+                            }
+                        }
+                    }
                 }
             }
+
+            println!("Errors: {:?}", map);
         });
         tasks.push(task);
     }
