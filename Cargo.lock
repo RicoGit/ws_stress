@@ -1224,6 +1224,7 @@ dependencies = [
  "futures",
  "hashbrown",
  "human_bytes",
+ "rand",
  "tokio",
  "tokio-tungstenite",
 ]

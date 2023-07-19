@@ -1,6 +1,6 @@
 [package]
 name = "ws_stress"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["konstantin Solovev"]
 
@@ -8,8 +8,8 @@ authors = ["konstantin Solovev"]
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1.17", features = ["full"] }
 tokio-tungstenite = { version = "0.19.0", features = ["rustls-tls-native-roots"]}
-#tokio-rustls = { version = "0.23.4", default-features = false, features = ["logging"] }
 futures = "0.3"
 human_bytes = { version = "0.4.2", default-features = false }
 hashbrown = "0.14"
+rand = "0.8"
 

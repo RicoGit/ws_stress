@@ -9,10 +9,13 @@ use std::{
 };
 
 use clap::Parser;
-use futures::SinkExt;
+use futures::stream::SplitStream;
+use futures::{SinkExt, StreamExt};
 use human_bytes::human_bytes;
-use tokio_tungstenite::connect_async;
+use rand::Rng;
+use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message::Text;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 #[tokio::main]
 async fn main() {
@@ -28,14 +31,18 @@ async fn main() {
         let msg = args.message.clone();
         let barrier = barrier.clone();
         let task = tokio::spawn(async move {
-            let mut client_tungstenite = connect_async(addr).await.unwrap().0;
+            let client_tungstenite = connect_async(addr).await.expect("Failed to connect").0;
+            let (mut tx, rx) = client_tungstenite.split();
+
+            read_responses(rx, args.resp_sample_rate);
+
             barrier.wait().await;
 
             // Async, quite fast, with feedback (send_all is faster but we can't count
             // messages)
             let mut map = hashbrown::HashMap::new();
             for _ in 0..args.messages {
-                match client_tungstenite.send(Text(msg.clone())).await {
+                match tx.feed(Text(msg.clone())).await {
                     Ok(_) => {
                         ok_counter.fetch_add(1, Ordering::Relaxed);
                     }
@@ -52,7 +59,7 @@ async fn main() {
                     }
                 }
             }
-
+            tx.flush().await.expect("flush failed");
             println!("Errors: {:?}", map);
         });
         tasks.push(task);
@@ -91,4 +98,25 @@ async fn main() {
 
 fn string_to_static_str(s: &str) -> &'static str {
     Box::leak(s.to_string().into_boxed_str())
+}
+
+fn read_responses(
+    mut rx: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    sample_rate: f64,
+) {
+    if sample_rate == 0.0 {
+        return;
+    }
+
+    // read all messages from rx and write in into stdout
+    tokio::spawn(async move {
+        while let Some(msg) = rx.next().await {
+            if sample_rate == 1.0 || rand::thread_rng().gen_bool(sample_rate) {
+                let received = msg.expect("Failed to receive a message");
+                if received.is_text() {
+                    println!("> {}", received.into_text().unwrap());
+                }
+            };
+        }
+    });
 }
